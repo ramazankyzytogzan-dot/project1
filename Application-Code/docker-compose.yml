@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  db:
+    image: mongo:latest
+    container_name: mongodb_service
+    # Мы убрали MONGO_INITDB_ROOT_USERNAME и PASSWORD
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build: ./backend
+    container_name: backend_service
+    ports:
+      - "3500:3500"
+    environment:
+      - DB_URL=mongodb://mongodb_service:27017/my_dev_db # Теперь коннект без логина
+    depends_on:
+      - db
+
+  # ... (frontend, exporter, prometheus, grafana оставляем как были) ...
+
+  n8n:
+    image: n8nio/n8n # Упростили путь к образу
+    container_name: n8n_service
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=false # Меньше строгости к файлам
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - db
+
+volumes:
+  mongo_data:
+  n8n_data:
